@@ -249,28 +249,32 @@ process_file()
 
     if [ $? -ne 0 ]; then
         echo "[ERROR]: processing of file $in failed"
-        cat ${scc_output_file}
 
-        # look for common errors so we can point to the right input file
+        # if the scc_output_file has content
+        if [ ! -s "${scc_output_file}" ]; then
+            cat ${scc_output_file}
 
-        # 1) /tmp/tmp.gfN6WsbDHN: line 403: cat: No such file or directory
-        #     "grep -oh" will only output what matches, which gets us "line 404: .."
-        #     cut gets us the second field, which is the line number
-        line=$(cat ${scc_output_file} | grep -oh "line.*:" | cut -f2 -d' ' | sed 's/://g')
-        if [ -n "$line" ]; then
-            let start_line=$line-20
-            let end_line=$line+10
-            if [ $start_line -lt 0 ]; then
-                start_line=0
+            # look for common errors so we can point to the right input file
+
+            # 1) /tmp/tmp.gfN6WsbDHN: line 403: cat: No such file or directory
+            #     "grep -oh" will only output what matches, which gets us "line 404: .."
+            #     cut gets us the second field, which is the line number
+            line=$(cat ${scc_output_file} | grep -oh "line.*:" | cut -f2 -d' ' | sed 's/://g')
+            if [ -n "$line" ]; then
+                let start_line=$line-20
+                let end_line=$line+10
+                if [ $start_line -lt 0 ]; then
+                    start_line=0
+                fi
+                echo ""
+                echo "Context around the error is:"
+                echo ""
+                sed -n -e "$start_line,$end_line p" -e "$end_line q" $in | sed 's/^/    /'
+                echo ""
+                echo "See pre-processed file $in for more details"
             fi
-            echo ""
-            echo "Context around the error is:"
-            echo ""
-            sed -n -e "$start_line,$end_line p" -e "$end_line q" $in | sed 's/^/    /'
-            echo ""
-            echo "See pre-processed file $in for more details"
         fi
-	rm -f ${scc_output_file}
+        rm -f ${scc_output_file}
         exit 1
     elif [ -n "${verbose}" ]; then
         cat ${scc_output_file}
