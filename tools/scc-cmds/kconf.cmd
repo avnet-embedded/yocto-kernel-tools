@@ -53,10 +53,6 @@ kconf() {
     eval echo "configs/${cbranch_name}/${relative_config_dir}/${simple_config_name} \# ${type}" >> "${configqueue}"
     eval echo "\$text" $outfile_append
 
-    if [ -n "${verbose}" ]; then
-        echo "config: rel: ${relative_config_dir} name: ${simple_config_name} [${cbranch_name}][${prefix}]" >&2
-    fi
-
     if [ "${type}" == "hardware" ]; then
         echo "${outdir}/configs/${cbranch_name}/${relative_config_dir}/${simple_config_name}" >> ${outdir}/hardware_frags.txt
     fi
