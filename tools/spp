@@ -496,7 +496,7 @@ process_file()
             fi
 
             # output the name, and exit
-            relative_patch=$(strip_common_prefix $patch_name)
+            relative_patch=$(strip_common_prefix $(readlink -f $patch_name))
             containing_dir=${patch_name/$relative_patch}
             echo "prefix ${containing_dir}"
             echo "patch \"${patch_name_new}\""
@@ -510,7 +510,7 @@ process_file()
                 echo "[ERROR]: could not find config fragment: $in"
                 exit 1
             fi
-            relative_kconf=$(strip_common_prefix $kconf_name)
+            relative_kconf=$(strip_common_prefix $(readlink -f $kconf_name))
             containing_dir=${kconf_name/$relative_kconf}
             echo "prefix ${containing_dir}"
             echo "kconf non-hardware ${kconf_name_new}"
@@ -524,7 +524,7 @@ process_file()
                 echo "[ERROR]: could not find defconfig: $in"
                 exit 1
             fi
-            relative_kconf=$(strip_common_prefix $kconf_name)
+            relative_kconf=$(strip_common_prefix $(readlink -f $kconf_name))
             containing_dir=${kconf_name/$relative_kconf}
             echo "prefix ${containing_dir}"
             echo "kconf non-hardware ${kconf_name_new}"
