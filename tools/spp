@@ -510,8 +510,8 @@ process_file()
                 echo "[ERROR]: could not find config fragment: $in"
                 exit 1
             fi
-            relative_kconf=$(strip_common_prefix $(readlink -f $kconf_name))
-            containing_dir=${kconf_name/$relative_kconf}
+            relative_kconf=$(strip_common_prefix $(readlink -f $kconf_name_new))
+            containing_dir=${kconf_name_new/$relative_kconf}
             echo "prefix ${containing_dir}"
             echo "kconf non-hardware ${kconf_name_new}"
             return
@@ -519,13 +519,13 @@ process_file()
         *defconfig)
             # output the name, and exit
             kconf_name=$in
-            kconf_name_new=$(search_include_paths $kconf_name ${working_dir} ${include_paths})
+            kconf_name_new=$(readlink -f $(search_include_paths $kconf_name ${working_dir} ${include_paths}))
             if [ -z "${kconf_name_new}" ]; then
                 echo "[ERROR]: could not find defconfig: $in"
                 exit 1
             fi
-            relative_kconf=$(strip_common_prefix $(readlink -f $kconf_name))
-            containing_dir=${kconf_name/$relative_kconf}
+	    relative_kconf=$(strip_common_prefix $(readlink -f $kconf_name_new))
+            containing_dir=${kconf_name_new/$relative_kconf}
             echo "prefix ${containing_dir}"
             echo "kconf non-hardware ${kconf_name_new}"
             return
