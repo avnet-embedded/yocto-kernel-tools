@@ -195,6 +195,21 @@ function classify_options() {
     fi
 }
 
+# Temporary files to store sanitized list and fragment errors.
+# Create those files in /tmp because /tmp in most cases is stored in RAM
+# This greatly increases performance, as we will append data to those files
+# and some file systems (like ZFS) are very slow at appends.
+FRAGMENT_ERRORS_TMP=`mktemp`
+SANITIZED_LIST_TMP=`mktemp`
+
+# Clean temporary files from /tmp on exit
+function cleanup {
+    rm -f $FRAGMENT_ERRORS_TMP
+    rm -f $SANITIZED_LIST_TMP
+}
+
+trap cleanup EXIT
+
 # step #1.
 # run merge_config.sh (without regenerating the .config), and capture its output.
 # This gets us redefined options, and a combined (but unprocessed) config.
@@ -295,7 +310,7 @@ SED_CONFIG_EXP="s/^\(# \)\{0,1\}\(CONFIG_[a-zA-Z0-9_]*\)[= ].*/\2/p"
 rm -f ${LOGDIR}/fragment_errors.txt
 declare -A CONFIGMAP
 for c in ${configs_abs}; do
-    sanitize_fragment ${c} ${LOGDIR}/sanitized_list >> ${LOGDIR}/fragment_errors.txt
+    sanitize_fragment ${c} $SANITIZED_LIST_TMP >> $FRAGMENT_ERRORS_TMP
     cfg_list=$(sed -n "$SED_CONFIG_EXP" ${c})
     for option in ${cfg_list}; do
         if [ -z "${CONFIGMAP[${option}]}" ]; then
@@ -309,6 +324,9 @@ for c in ${configs_abs}; do
         classify_options ${c}
     fi
 done
+
+mv $FRAGMENT_ERRORS_TMP ${LOGDIR}/fragment_errors.txt
+mv $SANITIZED_LIST_TMP ${LOGDIR}/sanitized_list
 
 # If we had meta data, we can use the classifications to group the options.
 if [ -n "${metadata}" ]; then
