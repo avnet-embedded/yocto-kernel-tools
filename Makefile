@@ -3,7 +3,8 @@ kern_tools_LIST = kgit kgit-meta \
 		  kgit-create-buckets \
 		  get_defconfig scc \
 		  merge_config.sh spp kgit-s2q \
-		  symbol_why.py
+		  symbol_why.py \
+		  kconfig-diff2frag.py
 
 cmds := $(wildcard tools/scc-cmds/*)
 libs := Kconfiglib/kconfiglib.py
