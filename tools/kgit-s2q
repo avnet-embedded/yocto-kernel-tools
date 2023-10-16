@@ -574,7 +574,7 @@ do
 	if [ $? != 0 ];then
 		git am $git_am_options --abort > /dev/null 2>&1
 		echo "[INFO]: check of $DIR/$i with \"git am\" did not pass, trying reduced context."
-		git am -C1 --keep-non-patch $DIR/$i > /dev/null 2>&1
+		git am $git_am_options -C1 --keep-non-patch $DIR/$i > /dev/null 2>&1
 		if [ $? = 0 ]; then
 			commit=$(git rev-parse HEAD)
 			echo $DIR/$i $commit >> $REFRESH
