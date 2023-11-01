@@ -31,6 +31,7 @@ cat <<EOF
     --annotated:  the series is annotated, use the annotations for auto resume
     --fuzzy:      match autoresume on fuzzy heuristics (i.e. subject only)
     --clean:      remove any patch artifacts that may remain from previous runs (i.e. sentinel files)
+    --prev:       reset state to the previous patch (retry last patch, failed or not)
     --commit-sha: type of commit sha to create: "author" or "applied". 'author' uses the date of the
                   patch author, and 'applied' uses the date (i.e. current time) of when the patch is applied.
                   The default is 'applied'
@@ -317,6 +318,9 @@ do
         --clean)
                 CLEAN=1
                 ;;
+	--prev)
+                PREV=1
+                ;;
 	--gen)
 		;;
 	--series)
@@ -398,6 +402,28 @@ if [ -n "${CLEAN}" ]; then
     # clean up and then exit
     rm -f $GIT_DIR/kgit-s2q.last
     rm -f $GIT_DIR/kgit-s2q.previous
+    exit 0
+fi
+
+# for now, this only pops us back to the previous patch, you cannot run it
+# twice if you haven't tried to re-apply patches. If we start to track the
+# the entire series, or make the .last file "deeper", then we can support
+# multiple runs. This is really just a debug assists to restart a patching
+# sequence.
+if [ -n "${PREV}" ]; then
+    if [ -e $GIT_DIR/kgit-s2q.previous ]; then
+	cmp -s $GIT_DIR/kgit-s2q.previous $GIT_DIR/kgit-s2q.last
+	if [ $? -eq 0 ]; then
+	    # previous and last are the same, remove so we restart
+	    rm -f $GIT_DIR/kgit-s2q.last
+	else
+	    # they are different, roll back to previous so we'll
+	    # try the same patch again next time around
+	    cp -f $GIT_DIR/kgit-s2q.previous $GIT_DIR/kgit-s2q.last
+	fi
+    else
+	rm -f $GIT_DIR/kgit-s2q.last
+    fi
     exit 0
 fi
 
@@ -527,6 +553,11 @@ do
 	if [ -f $GIT_DIR/kgit-s2q.last ]; then
 	    cp -f $GIT_DIR/kgit-s2q.last $GIT_DIR/kgit-s2q.previous
 	fi
+	# we really should only copy this if the patch PASSES, but this is
+	# currently used as a skip type operation, so if we change when this
+	# is written, we also need a --skip OR we would need a --retry flag
+	# that indicates we should retry failures, versus resuming after them
+	# by default.
 	echo $i > $GIT_DIR/kgit-s2q.last
 
 	if [ -n "$START" ]; then
