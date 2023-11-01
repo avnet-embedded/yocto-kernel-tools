@@ -597,9 +597,9 @@ do
 		echo "($APPLIED/$COUNT) `basename $i`"
 	fi
 
-	git_am_options=""
+	git_am_options="--no-verify"
 	if [ "$commit_sha_type" == "author" ]; then
-		git_am_options="--committer-date-is-author-date"
+		git_am_options="$git_am_options --committer-date-is-author-date"
 	fi
 	git am $git_am_options --keep-non-patch $DIR/$i > /dev/null 2>&1
 	if [ $? != 0 ];then
