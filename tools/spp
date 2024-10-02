@@ -242,6 +242,9 @@ search_include_paths()
         *.cfg)
             feature_ext=".cfg"
             ;;
+        *.config)
+            feature_ext=".config"
+            ;;
         *.scc)
             feature_ext=".scc"
             ;;
@@ -502,7 +505,7 @@ process_file()
             echo "patch \"${patch_name_new}\""
             return
             ;;
-        *.cfg)
+        *.cfg|*.config)
             # output the name, and exit
             kconf_name=$in
             kconf_name_new=$(search_include_paths $kconf_name ${working_dir} ${include_paths})
