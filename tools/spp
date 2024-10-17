@@ -382,9 +382,14 @@ if [ -z "$infiles" ]; then
     exit 1
 else
     for f in $infiles; do
-        expanded_file=$(search_include_paths $f $include_paths)
+	f_orig=$f
+	# the input files can have a specifier, which is seperated
+	# via a colon.
+	ff="$(echo $f_orig | cut -d: -f1)"
+	f_specifier="$(echo $f_orig | cut -d: -f2)"
+	expanded_file=$(search_include_paths $ff $include_paths)
         if [ -z "${expanded_file}" ]; then
-	    err "ERROR. input file \"$f\" does not exist"
+	    err "ERROR. input file \"$ff\" does not exist"
 	    exit 1
         fi
     done
@@ -486,6 +491,12 @@ process_file()
         echo "[INFO]: processing $in"
     fi
 
+    # files can have a specifier "optional" or "required"
+    # which follows the input file and is separated by a :
+    in_orig="$in"
+    in="$(echo $in_orig | cut -d: -f1)"
+    in_specifier="$(echo $in_orig | cut -d: -f2)"
+
     case $in in
         *.scc)
             # do nothing, the rest of this function handles things
@@ -515,8 +526,18 @@ process_file()
             fi
             relative_kconf=$(strip_common_prefix $(readlink -f $kconf_name_new))
             containing_dir=${kconf_name_new/$relative_kconf}
+
+	    hw_flag="non-hardware"
+	    case $in_specifier in
+		required)
+		    hw_flag="hardware"
+		    ;;
+		optional)
+		    ;;
+	    esac
+
             echo "prefix ${containing_dir}"
-            echo "kconf non-hardware ${kconf_name_new}"
+            echo "kconf $hw_flag ${kconf_name_new}"
             return
             ;;
         *defconfig)
