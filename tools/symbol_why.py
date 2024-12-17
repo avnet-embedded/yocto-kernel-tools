@@ -158,7 +158,7 @@ for opt in args.args:
     elif re.match( "--ksrc=*", opt):
         temp, ksrc = opt.split('=', 2)
     else:
-        if re.match( ".*\.config", opt ):
+        if re.match( r".*\.config", opt ):
             dotconfig=opt
         elif not ksrc:
             ksrc=opt
@@ -213,7 +213,7 @@ if not os.getenv("KERNELVERSION"):
     hconfig = open( dotconfig )
     for line in hconfig:
         line = line.rstrip()
-        x = re.match( "^# .*Linux/\w*\s*([0-9]*\.[0-9]*\.[0-9]*).*Kernel Configuration", line )
+        x = re.match( r"^# .*Linux/\w*\s*([0-9]*\.[0-9]*\.[0-9]*).*Kernel Configuration", line )
         if x:
             os.environ["KERNELVERSION"] = x.group(1)
             if verbose:
@@ -492,7 +492,7 @@ def split_option( config_option_str ):
         opt = m.group(1)
         val = m.group(2)
     except:
-        if re.search( "^#\s*CONFIG_", option ):
+        if re.search( r"^#\s*CONFIG_", option ):
             # print( "option is a is not set!!! %s" % option )
             m = re.match(r"# (CONFIG_[^ ]+) is not set", option )
             if m:
