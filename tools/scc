@@ -27,7 +27,7 @@ cat << EOF
       --help:      This message
       --force:     force overwrite output file if it already exists
       --cmds:      list of supported commands. If not passed, all found commands are loaded,
-                   valid commands are: patch, kconf, branch, define
+                   valid commands are: patch, cfg, branch, define
       --configs:   Output the list of compiled configuration fragments (if available), -o <outdir> is
                    used to locate the configuration options
       -D:          define <var> to <value> which will be available to sub scripts
@@ -52,6 +52,7 @@ if [ -z "$1" ]; then
 fi
 
 outdir="."
+sub_defines=""
 while [ $# -gt 0 ]; do
 	case "$1" in
 	    --help)
@@ -60,8 +61,10 @@ while [ $# -gt 0 ]; do
 		;;
 	    -D*|--D*)
 		if [ "$1" == "-D" ] || [ "$1" == "--D" ]; then
+		    sub_defines="$sub_defines $1 $2"
 		    x=$2; shift;
 		else
+		    sub_defines="$sub_defines $1"
 		    x=`echo $1 | sed s%^-*D%%`
 		fi
 		defines="$defines $x"
@@ -212,7 +215,6 @@ process_file()
     local done=""
     local scc_output_file="$(mktemp)"
 
-
     # source the file, but clear the path, since we only want commands
     # that we declare as valid to run
     (
@@ -223,6 +225,8 @@ process_file()
         mkdir=$(which mkdir)
         cp=$(which cp)
         sed=$(which sed)
+        grep=$(which grep)
+        cut=$(which cut)
 
         # load the commands. We load them all, and then check to see if we
         # should override a specific command to our "do nothing function"
@@ -242,13 +246,14 @@ process_file()
 
         unset PATH
         (
-            set -e
-            eval . $in $outfile_append > ${scc_output_file} 2>&1
+            scc_errexit="off"
+            set -e && scc_errexit="on"
+            eval . $in $outfile_append # > ${scc_output_file} 2>&1
         )
     )
 
     if [ $? -ne 0 ]; then
-        echo "[ERROR]: processing of file $in failed"
+        echo "[ERROR]: processing of file $in failed (${scc_output_file})"
 
         # if the scc_output_file has content
         if [ ! -s "${scc_output_file}" ]; then
@@ -367,6 +372,7 @@ fi
 configqueue="/dev/null"
 patchqueue="${outdir}/unused.patch.queue"
 mergequeue="${outdir}/unused.merge.queue"
+fixups="${outdir}/fixups"
 
 echo ${artifacts} | grep -w -q cfg
 if [ $? -eq 0 ]; then
@@ -388,9 +394,15 @@ if [ $? -eq 0 ]; then
     rm -f "${outdir}"/merge.queue
 fi
 
+if [ -e "$fixups" ]; then
+    cp -f $fixups $fixups.old
+fi
+rm -f $fixups
+
 # preprocess the files.
 # This does things like make paths absolute, checks for errors, etc.
-spp --force $intermediate_flags -o $pre_processed_file $include_paths $infiles
+# NOTE: we could make a flag to inhibit passing of defines down to scc
+spp --force $intermediate_flags $sub_defines -o $pre_processed_file $include_paths $infiles
 if [ $? -ne 0 ]; then
     err "ERROR: could not process input files: $infiles"
     err "       See ${pre_processed_file} for details"
@@ -402,6 +414,17 @@ eval header $outfile_start
 # process the files and produce artifacts
 process_file ${pre_processed_file}
 ret=$?
+
+if [ -f "$fixups" ]; then
+    if [ -n "$verbose" ]; then
+        echo "fixups are present, executing .."
+    fi
+    while IFS= read -r line; do
+        echo "Executing: $line"
+        eval "$line"
+    done < "$fixups"
+fi
+
 if [ $ret -ne 0 ]; then
     if [ -z "$intermediate" ]; then
         if [ -n "$outfile" ]; then

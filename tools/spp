@@ -583,7 +583,6 @@ process_file()
     fi
     processed_files="$processed_files $in"
 
-
     echo "# --> file: $in"
     echo "# flags: $flags"
     echo "mark `basename $in` start"
@@ -676,17 +675,27 @@ process_file()
         fi
 
         ## kconf
-        if [[ $fline =~ ^[[:space:]]*kconf || $fline =~ ^force[[:space:]]*kconf ]]; then
+        if [[ $fline =~ ^[[:space:]]*kconf || $fline =~ ^force[[:space:]]*kconf ||
+              $fline =~ ^as_module[[:space:]]*kconf ]]; then
             set $fline
             arg1=$1
-            if [ "$arg1" = "force" ]; then
+
+            if [ "$arg1" = "as_module" ]; then
+                echo "# module forcing: $arg1 2: $2 3: $3 4: $4 5: $5"
+                kconf_type=$3
+                kconf_name=$4
+                kconf_modifiers=$arg1
+                arg1=""
+            elif [ "$arg1" = "force" ]; then
                 # "force" will insist that its config be processed
                 kconf_type=$3
                 kconf_name=$4
+                kconf_modifiers=$5
             else
                 arg1=""
                 kconf_type=$2
                 kconf_name=$3
+                kconf_modifiers=$4
             fi
 
             if [ -n "$inherited_inhibit_cfg" ] && [ -z "$arg1" ]; then
@@ -713,7 +722,7 @@ process_file()
                 relative_kconf=$(strip_common_prefix $kconf_name)
                 containing_dir=${kconf_name/$relative_kconf}
                 echo "prefix ${containing_dir}"
-                echo "kconf $kconf_type ${kconf_name} # $arg1"
+                echo "kconf $kconf_type ${kconf_name} ${kconf_modifiers} # $arg1"
             fi
 
             continue
