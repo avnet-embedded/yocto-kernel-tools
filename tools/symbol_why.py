@@ -488,7 +488,8 @@ def split_option( config_option_str ):
     opt = None
     val = None
     try:
-        m = re.match( r"(CONFIG_[^= ]+)=([^ ]+.*)", option)
+        # m = re.match( r"(CONFIG_[^= ]+)=([^ ]+.*)", option)
+        m = re.match(r"^(CONFIG_[^= ]+)=([^\s#]+)", option)
         opt = m.group(1)
         val = m.group(2)
     except:
