@@ -117,6 +117,14 @@ net/can \
 net/nfc \
 net/nfc/hci \
 net/nfc/nci \
+net/bluetooth \
+net/ieee802154 \
+net/mac80211 \
+net/mac802154 \
+net/rfkill \
+net/wireless \
+net/caif \
+net/phonet \
 sound \
 "
 
@@ -146,7 +154,23 @@ drivers/of \
 drivers/virtio \
 drivers/remoteproc \
 drivers/rpmsg \
-drivers/virt
+drivers/virt \
+drivers/base/power \
+drivers/dma-buf/heaps \
+drivers/firmware/arm_scmi \
+drivers/firmware/psci \
+drivers/idle \
+drivers/interconnect \
+drivers/irqchip \
+drivers/nvmem \
+drivers/opp \
+drivers/perf \
+drivers/pmdomain \
+drivers/reset \
+drivers/target \
+drivers/tee \
+drivers/vdpa \
+drivers/vfio \
 drivers/staging \
 drivers/staging/android \
 drivers/vhost \
@@ -160,6 +184,7 @@ security \
 samples \
 usr \
 virt \
+io_uring \
 "
 
 DEBUG "hardware: $hardware"
