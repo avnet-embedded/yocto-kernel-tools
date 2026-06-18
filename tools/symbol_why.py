@@ -79,6 +79,10 @@ parser.add_argument("--blame", action='store_true',
                     help="perform config blame on symbol (or whole config)" )
 parser.add_argument("--sanity", action='store_true',
                     help="perform config sanity on symbol (or whole config)" )
+parser.add_argument("--selftest", action='store_true',
+                    help="parse the kernel Kconfig and exit (0 on success). Verifies "
+                         "that the bundled Kconfiglib can parse this kernel tree; needs "
+                         "neither a .config nor a config.queue" )
 parser.add_argument("--extended", action='store_true',
                     help="output extended config information" )
 parser.add_argument("--invalid", action='store_true',
@@ -101,6 +105,7 @@ args, unknownargs = parser.parse_known_args()
 do_blame = False
 do_summary = False
 do_sanity = False
+do_selftest = False
 do_analysis = False
 do_invalid = False
 do_all = False
@@ -125,6 +130,8 @@ if args.blame:
     do_blame = args.blame
 if args.sanity:
     do_sanity = args.sanity
+if args.selftest:
+    do_selftest = args.selftest
 if args.extended:
     do_analysis = args.extended
 if args.invalid:
@@ -173,7 +180,7 @@ if option and do_analysis:
         # forcing summary on, since single variable is being prcessed
         do_summary = True
 
-if not os.path.exists( dotconfig ):
+if not do_selftest and not os.path.exists( dotconfig ):
     print( "ERROR: .config '%s' does not exist" % dotconfig )
     sys.exit(1)
 
@@ -210,14 +217,15 @@ if filter_file_or_list:
 # other missing variables are an error
 #
 if not os.getenv("KERNELVERSION"):
-    hconfig = open( dotconfig )
-    for line in hconfig:
-        line = line.rstrip()
-        x = re.match( r"^# .*Linux/\w*\s*([0-9]*\.[0-9]*\.[0-9]*).*Kernel Configuration", line )
-        if x:
-            os.environ["KERNELVERSION"] = x.group(1)
-            if verbose:
-                print( "[INFO]: kernel version %s found in .config, if this is incorrect, set KERNELVERSION in the environement" % x.group(1) )
+    if not do_selftest:
+        hconfig = open( dotconfig )
+        for line in hconfig:
+            line = line.rstrip()
+            x = re.match( r"^# .*Linux/\w*\s*([0-9]*\.[0-9]*\.[0-9]*).*Kernel Configuration", line )
+            if x:
+                os.environ["KERNELVERSION"] = x.group(1)
+                if verbose:
+                    print( "[INFO]: kernel version %s found in .config, if this is incorrect, set KERNELVERSION in the environement" % x.group(1) )
 
     if not os.getenv("KERNELVERSION"):
         os.environ["KERNELVERSION"] = "4.7"
@@ -605,7 +613,10 @@ def config_queue_read( config_queue_file ):
     try:
         p.resolve(True)
     except:
-        return frag_dict,option_dict,issues_dict,hw_class_dict,non_hw_class_dict
+        # Note: must return the same arity as the normal return below, since
+        # the caller unpacks 6 values (this path is hit when the config.queue
+        # file is absent, e.g. outside a full kernel-meta build).
+        return frag_dict,option_dict,issues_dict,hw_class_dict,non_hw_class_dict,y_or_m_dict
 
 
     # There are two passes through the queue.
@@ -866,6 +877,13 @@ if verbose:
     show_errors = True
 
 conf = kconfiglib.Kconfig( kconf, show_errors, show_errors )
+
+if do_selftest:
+    # We got here, so the bundled Kconfiglib parsed the kernel's Kconfig
+    # successfully. That is all the self-test checks -- bail out before the
+    # .config / config.queue processing, which needs build artifacts.
+    print( "[INFO]: symbol_why.py self-test: Kconfig parsed successfully" )
+    sys.exit(0)
 
 # Load values from a .config file.
 conf.load_config( dotconfig )

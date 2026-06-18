@@ -513,6 +513,21 @@ if [ -n "$verbose" ] && [ -s $LOGDIR/redefinition.txt ]; then
     echo
 fi
 
+# Self-test: confirm symbol_why.py (and the bundled Kconfiglib it uses) can
+# parse this kernel's Kconfig, regardless of whether a mismatch is found below.
+# symbol_why.py is otherwise only invoked when a hardware mismatch happens, so a
+# Kconfiglib-vs-kernel grammar breakage (e.g. a new Kconfig syntax) could go
+# unnoticed across many builds. Fail the audit loudly if the parse self-test fails.
+sw_selftest_out=$(srctree=. CC=gcc ARCH=x86 symbol_why.py --selftest --ksrc="." 2>&1)
+if [ $? -ne 0 ]; then
+    echo "[ERROR]: kconf_check: symbol_why.py self-test failed. The config audit cannot"
+    echo "         analyze symbols -- this usually means the bundled Kconfiglib can no"
+    echo "         longer parse the kernel's Kconfig (e.g. a new Kconfig grammar feature"
+    echo "         needs a Kconfiglib update). symbol_why.py --selftest output:"
+    echo "${sw_selftest_out}" | sed 's/^/           /'
+    exit 1
+fi
+
 # One could argue that any mismatch is a valid reason to declare failure.
 if [ -s $LOGDIR/mismatch.txt ]; then
     reported=t
@@ -554,7 +569,13 @@ if [ -s $LOGDIR/mismatch.txt ]; then
 
                 # drop CONFIG_ from the symbol name, since symbol_why doesn't expect it.
                 opt_to_check=$(echo $opt | sed 's%CONFIG_%%')
-                srctree=. CC=gcc ARCH=x86 symbol_why.py --dotconfig=${dot_config} --ksrc="." --conditions $opt_to_check >> $LOGDIR/mismatch.txt
+                srctree=. CC=gcc ARCH=x86 symbol_why.py --dotconfig=${dot_config} --ksrc="." --conditions $opt_to_check >> $LOGDIR/mismatch.txt 2>&1
+                sw_rc=$?
+                if [ $sw_rc -ne 0 ]; then
+                    echo "[ERROR]: kconf_check: symbol_why.py failed (rc=$sw_rc) while analyzing" >&2
+                    echo "         '$opt_to_check'. See $LOGDIR/mismatch.txt for the full output." >&2
+                    exit $sw_rc
+                fi
                 echo "" >> $LOGDIR/mismatch.txt
             fi
         done
