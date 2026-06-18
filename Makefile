@@ -37,9 +37,17 @@ define remove_tool
 	$(RM) -f $(DESTDIR)/$(1);
 endef
 
+# 'selftest' is also a directory name, so it must be declared phony.
+.PHONY: all install clean selftest
+
 all:
 	@$(ECHO) No action provided, so nothing will be done
-	@$(ECHO) Available actions are 'install' and 'clean'
+	@$(ECHO) Available actions are 'install', 'clean' and 'selftest'
+
+# Hermetic regression tests for the bundled Kconfiglib / symbol_why.py.
+# Needs no kernel checkout and no compiler (see selftest/README).
+selftest:
+	@./selftest/run-selftest.sh
 
 install:
 	@if [ -z "$(DESTDIR)" ]; then \

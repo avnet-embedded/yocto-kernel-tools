@@ -1,0 +1,51 @@
+kern-tools self-test
+====================
+
+Hermetic regression tests for the bundled Kconfiglib (Kconfiglib/kconfiglib.py)
+and symbol_why.py. No kernel checkout and no compiler are required to run them.
+
+    ./run-selftest.sh          (or: make selftest)
+
+runs two independent checks and exits non-zero if either fails:
+
+1. Kernel Kconfig parse
+   ---------------------
+   sync-kernel-kconfig.sh snapshots a real kernel's full Kconfig structure --
+   every Kconfig* file, the scripts/*.sh helpers that scripts/Kconfig.include
+   shells out to at parse time, and scripts/dummy-tools/ (the kernel's fake
+   gcc/ld) -- into kconfig-test-data.tar.gz. run-selftest.sh unpacks that and
+   parses the whole thing via "symbol_why.py --selftest", using the dummy tools
+   so no real toolchain is needed.
+
+   This is the broad early-warning test: if the kernel introduces a Kconfig
+   construct the bundled Kconfiglib can't parse (as v7.0 did with
+   "depends on X if Y"), this fails -- whether or not we anticipated it. It
+   checks parse success only, not values.
+
+   The snapshot is GENERATED LOCALLY, not committed (it is .gitignore'd, ~2 MB
+   gzipped / ~13 MB unpacked -- too large and too churny to track). Generate or
+   refresh it with:
+
+       ./sync-kernel-kconfig.sh /path/to/linux-source
+
+   which writes kconfig-test-data.tar.gz + kconfig-test-data.manifest
+   (provenance). Until it exists, run-selftest.sh SKIPS this check with a
+   reminder. Re-running after a kernel bump tells you, before any image build,
+   whether Kconfiglib needs updating for the new kernel.
+
+2. Conditional-dependency semantics
+   ---------------------------------
+   fixtures/conditional_dep/ is a tiny synthetic Kconfig plus
+   test_conditional_dep.py, which loads it through Kconfiglib and asserts
+   computed symbol values for "depends on X if Y" -- including the compound
+   tristate case where the faithful "X || (cond == n)" encoding differs from a
+   naive "!cond". This catches a *semantic* regression that the parse test
+   (parse only) would miss. It needs no generated data and always runs.
+
+Notes
+-----
+- Kconfiglib parses only Kconfig files -- never Makefiles, C source or headers
+  -- which is why a Kconfig*-plus-helpers snapshot is complete for parsing.
+- The in-build audit (kernel-yocto.bbclass do_kernel_configcheck, and
+  tools/kconf_check) already exercises symbol_why.py against the real kernel
+  source; this directory is the standalone/CI counterpart that needs no kernel.

@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: GPL-2.0
+# Synthetic fixture for "depends on X if Y" (Linux kernel commit 76df6815dab7).
+#
+# Self-contained: no $(shell)/scripts dependencies, so it parses with no
+# toolchain. Exercises the three shapes that matter for the conditional-dep
+# encoding "X || (Y == n)":
+#   - single bool condition
+#   - the "X if X" tristate idiom
+#   - a COMPOUND condition with a tristate operand -- the case where the
+#     faithful "(cond == n)" distribution differs from a naive "!cond"
+#     (kconfiglib's NOT is 2 - val, so !m == m, which would wrongly cap a
+#     tristate symbol instead of disabling it).
+#
+# Expected values are asserted by test_conditional_dep.py.
+
+config MODULES
+	bool "Enable loadable module support"
+	modules
+	default y
+
+config A
+	tristate "A"
+
+config B
+	tristate "B"
+
+config X
+	tristate "X"
+
+config Y
+	bool "Y"
+
+config T_BOOL
+	tristate "single bool condition"
+	depends on X if Y
+	default y
+
+config T_TRI
+	tristate "tristate X-if-X idiom"
+	depends on A if A
+	default y
+
+config T_COMPOUND
+	tristate "compound tristate condition"
+	depends on X if (A || B)
+	default y
